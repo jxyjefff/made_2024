@@ -1,0 +1,64 @@
+	constraint AngleRange oftype RangeConstraint {
+        lowerBound: -90;
+        lowerBoundInclusive: true;
+        upperBound: 90;
+        upperBoundInclusive: true;
+         }
+
+	valuetype Coordinates oftype decimal {
+        constraints: [AngleRange];}
+
+	constraint only2001 oftype RangeConstraint {
+         lowerBound: 2001;
+         upperBound: 2001;
+         }
+
+	valuetype Zones oftype integer {
+        constraints:[only2001];}
+
+
+pipeline exercise5
+{
+
+    block exercise5Extractor oftype HttpExtractor {
+        url: "https://gtfs.rhoenenergie-bus.de/GTFS.zip";
+        }
+
+    block exercise5ZipInterpreter oftype ArchiveInterpreter {
+        archiveType: "zip";
+        }
+
+    block exercise5FilePick oftype FilePicker {
+        path: "/stops.txt";
+        }
+
+	block exercise5TextFileInterpreter oftype TextFileInterpreter {}
+
+	block exercise5CSVInterpreter oftype CSVInterpreter {
+		enclosing: '"';
+		enclosingEscape: '"';}
+
+    block exercise5TableInterpreter oftype TableInterpreter {
+		header: true;
+		columns: [
+			"stop_id" oftype integer,
+			"stop_name" oftype text,
+			"stop_lat" oftype Coordinates,
+			"stop_lon" oftype Coordinates,
+			"zone_id" oftype Zones,
+
+		];}
+
+	block exercise5SQLLoader oftype SQLiteLoader {
+		table: "stops";
+		file: "./gtfs.sqlite";
+		}
+
+    exercise5Extractor
+        -> exercise5ZipInterpreter
+        -> exercise5FilePick
+        -> exercise5TextFileInterpreter
+        -> exercise5CSVInterpreter
+        -> exercise5TableInterpreter
+        -> exercise5SQLLoader;
+}
